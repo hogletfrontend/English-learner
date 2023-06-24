@@ -2,6 +2,7 @@ import './index.css'
 // import GalleryPage from './pages/Gallery'
 import GalleryPage from './pages/Gallery-N'
 import TypingPage from './pages/Typing'
+import SpeakPage from './pages/Speak'
 import { isOpenDarkModeAtom } from '@/store'
 import { useAtomValue } from 'jotai'
 import mixpanel from 'mixpanel-browser'
@@ -32,6 +33,7 @@ function Root() {
       <BrowserRouter basename={REACT_APP_DEPLOY_ENV === 'pages' ? '/qwerty-learner' : ''}>
         <Routes>
           <Route index element={<TypingPage />} />
+          <Route path="/speak" element={<SpeakPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/*" element={<Navigate to="/" />} />
         </Routes>
