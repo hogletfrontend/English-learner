@@ -75,34 +75,31 @@ const App: React.FC = () => {
     state.chapterData.words?.length > 0 ? setIsLoading(false) : setIsLoading(true)
   }, [state.chapterData.words])
 
-  // useEffect(() => {
-  //   if (!state.isTyping) {
-  //     const onKeyDown = (e: KeyboardEvent) => {
-  //       console.log(111, e.key === ' ')
-  //       if (!isLoading && e.key !== 'Enter' && e.key !== ' ' && (isLegal(e.key)) && !e.altKey && !e.ctrlKey && !e.metaKey) {
-  //         console.log(22222);
+  useEffect(() => {
+    if (!state.isTyping) {
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (!isLoading && e.key !== 'Enter' && e.key !== ' ' && (isLegal(e.key)) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault()
+          dispatch({ type: TypingStateActionType.SET_IS_TYPING, payload: true })
+        }
+      }
+      window.addEventListener('keydown', onKeyDown)
 
-  //         e.preventDefault()
-  //         dispatch({ type: TypingStateActionType.SET_IS_TYPING, payload: true })
-  //       }
-  //     }
-  //     window.addEventListener('keydown', onKeyDown)
-
-  //     return () => window.removeEventListener('keydown', onKeyDown)
-  //   }
-  // }, [state.isTyping, isLoading, dispatch])
+      return () => window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [state.isTyping, isLoading, dispatch])
 
   useEffect(() => {
     const keys = [' ']
     const onKeyDown = (e: KeyboardEvent) => {
       if (keys.includes(e.key)) {
         e.preventDefault()
+        dispatch({ type: TypingStateActionType.SET_IS_TYPING, payload: false })
         dispatch({ type: TypingStateActionType.SET_IS_LISTENING, payload: true })
       }
     }
     const onKeyUp = (e: KeyboardEvent) => {
       if (keys.includes(e.key)) {
-        console.log('keyup执行');
         e.preventDefault()
         dispatch({ type: TypingStateActionType.SET_IS_LISTENING, payload: false })
       }

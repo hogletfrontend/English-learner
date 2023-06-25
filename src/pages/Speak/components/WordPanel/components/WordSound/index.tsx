@@ -9,7 +9,6 @@ import { useAtomValue } from 'jotai'
 import { useCallback, useContext, useEffect, useState, useRef } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { AudioTwoTone } from '@ant-design/icons'
-import Recorder from 'js-audio-recorder'
 
 const WordSound = ({ word, inputWord, type, ...rest }: WordSoundProps) => {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
@@ -46,56 +45,59 @@ const WordSound = ({ word, inputWord, type, ...rest }: WordSoundProps) => {
   }, [play, stop])
 
   const timerRef = useRef<any>()
-  const recorderRef = useRef(new Recorder())
-  // 是否已经开始录音
-  const [started, setStatrted] = useState(false)
-  // 录音颜色标识
+  const recRef = useRef<any>(null)
   const [microPhoneColor, setMicroPhoneColor] = useState('#4b5563')
 
-  // 申请录音权限
   useEffect(() => {
-    if (navigator.mediaDevices.getUserMedia) {
-      const constraints = { audio: true }
-      navigator.mediaDevices.getUserMedia(constraints)
+    if (navigator.mediaDevices) {
+      const constraints = { audio: true };
+      let chunks: any[] = [];
+      navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+        recRef.current = new MediaRecorder(stream)
+        const audio = document.createElement('audio')
+
+        recRef.current.onstart = (e: any) => {
+          audio.pause()
+          setMicroPhoneColor('#52c41a')
+          timerRef.current = setInterval(() => {
+            setMicroPhoneColor(value => value === '#4b5563' ? '#52c41a' : '#4b5563')
+          }, 400)
+        }
+
+        recRef.current.onstop = (e: any) => {
+          clearInterval(timerRef.current)
+          if (microPhoneColor === '#52c41a') {
+            setMicroPhoneColor('#4b5563')
+          }
+
+          const blob = new Blob(chunks, { type: 'audio/webm; codecs=opus' })
+          if (blob.size > 5000) {
+            const audioURL = window.URL.createObjectURL(blob)
+            audio.controls = true
+            audio.src = audioURL
+            audio.play()
+            // TODO 语音识别逻辑
+          }
+        }
+
+        recRef.current.ondataavailable = (e: any) => {
+          chunks = []
+          chunks.push(e.data)
+          clearInterval(timerRef.current)
+        }
+      })
     }
   }, [])
 
   useEffect(() => {
     if (state.isListening) {
-      setMicroPhoneColor('#52c41a')
-      setStatrted(true)
-      timerRef.current = setInterval(() => {
-        setMicroPhoneColor(value => value === '#4b5563' ? '#52c41a' : '#4b5563')
-      }, 400)
-      recorderRef.current.start().then(() => {
-        // 
-      }, (error) => {
-        console.log(error)
-      })
-
-      recorderRef.current.onprogress = (params) => {
-        console.log(params, params.duration > 5)
-        if(params.duration > 5) {
-          recorderRef.current.stop()
-        }
+      if (recRef.current?.state === 'recording') {
+        recRef.current?.stop()
       }
+      recRef.current?.start()
     } else {
-      // 结束录音
       clearInterval(timerRef.current)
-      if (microPhoneColor === '#52c41a') {
-        setMicroPhoneColor('#4b5563')
-      }
-      recorderRef.current.stop()
-
-      if (started) {
-        console.log(2)
-        // recorderRef.current.destroy()
-        recorderRef.current.stop()
-        recorderRef.current.play()
-        // console.log(recorder.getPCMBlob());
-        console.log(recorderRef.current.getWAVBlob());
-        // TODO 提交录音文件，过滤时间较小的文件
-      }
+      recRef.current?.stop()
     }
   }, [state.isListening])
 
@@ -103,7 +105,7 @@ const WordSound = ({ word, inputWord, type, ...rest }: WordSoundProps) => {
   if (type === 'listen') {
     return (
       <Tooltip content="开始录音（G）" className={`${styles.wordSound}`}>
-        <AudioTwoTone style={{ fontSize: 24, marginTop: 24 }} twoToneColor={microPhoneColor} />
+        <AudioTwoTone style={{ fontSize: 24, marginTop: 24 }} twoToneColor={state.isListening ? microPhoneColor : '#4b5563'} />
       </Tooltip>
     )
   }
